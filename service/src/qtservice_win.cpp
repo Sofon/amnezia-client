@@ -639,11 +639,13 @@ void WINAPI QtServiceSysPrivate::handler( DWORD code )
         break;
 
     case SERVICE_CONTROL_SHUTDOWN: // 5
-        instance->status.dwWaitHint = 10000;
-        instance->setStatus(SERVICE_STOP_PENDING);
-        QCoreApplication::postEvent(instance->controllerHandler, new QEvent(QEvent::Type(QEvent::User + SERVICE_CONTROL_STOP)));
-        instance->condition.wait(&instance->mutex, 8000);
-        break;
+        // System is shutting down - exit immediately, no cleanup needed.
+        // WFP firewall rules are dynamic (auto-removed on process exit).
+        // WireGuard tunnel service will be killed by Windows SCM.
+        instance->mutex.unlock();
+        instance->setStatus(SERVICE_STOPPED);
+        ExitProcess(0);
+        return;  // unreachable
 
     default:
         if ( code >= 128 && code <= 255 ) {
@@ -745,8 +747,10 @@ bool QtServiceAppEventFilter::nativeEventFilter(const QByteArray &, void *messag
 {
     MSG *winMessage = (MSG*)message;
     if (winMessage->message == WM_ENDSESSION) {
+        // System is shutting down or user is logging off - exit immediately
         *result = TRUE;
-        return true;
+        ExitProcess(0);
+        return true;  // unreachable
     }
     return false;
 }
