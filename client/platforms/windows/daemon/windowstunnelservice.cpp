@@ -67,7 +67,11 @@ void WindowsTunnelService::stop() {
 
   if (m_logworker) {
     m_logthread.quit();
-    m_logthread.wait();
+    if (!m_logthread.wait(2000)) {
+      logger.warning() << "Log thread did not finish in time, terminating";
+      m_logthread.terminate();
+      m_logthread.wait(500);
+    }
     m_logworker = nullptr;
   }
 }
@@ -286,7 +290,7 @@ QString WindowsTunnelService::uapiCommand(const QString& command) {
 // static
 static bool waitForServiceStatus(SC_HANDLE service, DWORD expectedStatus) {
   int tries = 0;
-  while (tries < 30) {
+  while (tries < 15) {
     SERVICE_STATUS status;
     if (!QueryServiceStatus(service, &status)) {
       WindowsUtils::windowsLog("Failed to retrieve the service status");
@@ -297,12 +301,14 @@ static bool waitForServiceStatus(SC_HANDLE service, DWORD expectedStatus) {
       return true;
     }
 
-    logger.warning() << "The service is not in the right status yet.";
+    logger.warning() << "The service is not in the right status yet."
+                     << "Current:" << status.dwCurrentState
+                     << "Expected:" << expectedStatus;
 
-    Sleep(1000);
+    Sleep(300);
     ++tries;
   }
-
+  logger.error() << "Timed out waiting for service status:" << expectedStatus;
   return false;
 }
 

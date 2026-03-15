@@ -118,6 +118,13 @@ bool WindowsDaemon::run(Op op, const InterfaceConfig& config) {
   return true;
 }
 
+void WindowsDaemon::deactivateSplitTunnel() {
+  if (m_splitTunnelManager) {
+    logger.debug() << "Deactivating split tunnel";
+    m_splitTunnelManager->stop();
+  }
+}
+
 void WindowsDaemon::monitorBackendFailure() {
   logger.warning() << "Tunnel service is down";
 

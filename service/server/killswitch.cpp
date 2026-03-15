@@ -121,6 +121,10 @@ bool KillSwitch::disableKillSwitch() {
 #endif
 
 #ifdef Q_OS_WIN
+    // Stop split tunnel driver to prevent it from intercepting traffic
+    // after VPN disconnects (which would freeze excluded apps)
+    WindowsDaemon::instance()->deactivateSplitTunnel();
+
     if (isStrictKillSwitchEnabled()) {
         return disableAllTraffic();
     }

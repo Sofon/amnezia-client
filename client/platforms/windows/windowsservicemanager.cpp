@@ -87,9 +87,10 @@ bool WindowsServiceManager::startPolling(DWORD goal_state, int max_wait_sec) {
 
     logger.debug() << "Polling Status" << m_state_target
                    << "wanted, has: " << status.dwCurrentState;
-    Sleep(1000);
+    Sleep(300);
     ++tries;
   }
+  logger.error() << "Timed out polling for service state:" << goal_state;
   return false;
 }
 

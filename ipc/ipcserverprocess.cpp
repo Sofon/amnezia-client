@@ -28,10 +28,10 @@ IpcServerProcess::~IpcServerProcess()
     if (m_process && m_process->state() != QProcess::NotRunning) {
         qDebug() << "IpcServerProcess: terminating child process" << m_process->program();
         m_process->terminate();
-        if (!m_process->waitForFinished(3000)) {
+        if (!m_process->waitForFinished(1000)) {
             qDebug() << "IpcServerProcess: force killing child process" << m_process->program();
             m_process->kill();
-            m_process->waitForFinished(2000);
+            m_process->waitForFinished(500);
         }
     }
 }
