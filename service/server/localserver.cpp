@@ -12,6 +12,7 @@
 #include "ipc.h"
 #include "killswitch.h"
 #include "logger.h"
+#include "xray.h"
 
 #ifdef Q_OS_WIN
     #include "tapcontroller_win.h"
@@ -53,28 +54,26 @@ LocalServer::LocalServer(QObject *parent) : QObject(parent),
     connect(&m_networkWatcher, &NetworkWatcher::networkChanged, &m_ipcServer, &IpcServer::networkChanged);
     connect(&m_networkWatcher, &NetworkWatcher::wakeup, &m_ipcServer, &IpcServer::wakeup);
     KillSwitch::instance()->init();
-
-#ifdef Q_OS_LINUX
-    // Signal handling for a proper shutdown.
-    QObject::connect(qApp, &QCoreApplication::aboutToQuit,
-                     []() { LinuxDaemon::instance()->deactivate(); });
-#endif
-
-#ifdef Q_OS_MAC
-    // Signal handling for a proper shutdown.
-    QObject::connect(qApp, &QCoreApplication::aboutToQuit,
-                     []() { MacOSDaemon::instance()->deactivate(); });
-#endif
-
-#ifdef Q_OS_WIN
-    // Signal handling for a proper shutdown.
-    QObject::connect(qApp, &QCoreApplication::aboutToQuit,
-                     []() { WindowsDaemon::instance()->deactivate(); });
-#endif
 }
 
 LocalServer::~LocalServer()
 {
+    qDebug() << "Local server stopping, cleaning up...";
+
+    // Stop Xray if running
+    Xray::getInstance().stopXray();
+
+    // Deactivate daemon to restore network settings, DNS, firewall rules
+    daemon.deactivate();
+
+    // Disable kill switch to restore normal traffic
+    KillSwitch::instance()->disableKillSwitch();
+
+    // Close the local server to stop accepting new connections
+    if (m_server) {
+        m_server->close();
+    }
+
     qDebug() << "Local server stopped";
 }
 
